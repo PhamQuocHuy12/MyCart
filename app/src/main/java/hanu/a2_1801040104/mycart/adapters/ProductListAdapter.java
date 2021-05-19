@@ -1,35 +1,44 @@
 package hanu.a2_1801040104.mycart.adapters;
 
 import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.os.AsyncTask;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
 
+import org.json.JSONException;
+
+
+import java.io.IOException;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 
 import hanu.a2_1801040104.mycart.R;
 import hanu.a2_1801040104.mycart.models.Product;
 
 public class ProductListAdapter extends RecyclerView.Adapter<ProductListAdapter.ProductListHolder> {
-    private JSONArray products;
+    private List<Product> products;
 
-    public ProductListAdapter(JSONArray products) {
+    public ProductListAdapter(List<Product> products) {
         this.products = products;
     }
 
     @Override
     public int getItemCount() {
-        return this.products.length();
+        return this.products.size();
     }
 
     @NonNull
@@ -43,13 +52,16 @@ public class ProductListAdapter extends RecyclerView.Adapter<ProductListAdapter.
 
     @Override
     public void onBindViewHolder(@NonNull ProductListHolder holder, int position) {
-        JSONObject product = null;
+        Product product = null;
+            product = this.products.get(position);
         try {
-            product = this.products.getJSONObject(position);
             holder.bind(product);
-        } catch (JSONException e) {
+        } catch (ExecutionException e) {
+            e.printStackTrace();
+        } catch (InterruptedException e) {
             e.printStackTrace();
         }
+
 
         ImageButton btnAddToCard = holder.view.findViewById(R.id.btnAddToCart);
         btnAddToCard.setOnClickListener(new View.OnClickListener() {
@@ -62,17 +74,46 @@ public class ProductListAdapter extends RecyclerView.Adapter<ProductListAdapter.
 
     public class ProductListHolder extends RecyclerView.ViewHolder{
         View view;
-        TextView tvDescription, tvPrice;
+        TextView tvName, tvPrice;
+        ImageView ivThumbnail;
         public ProductListHolder(@NonNull View itemView) {
             super(itemView);
-            tvDescription = itemView.findViewById(R.id.productName);
+            tvName = itemView.findViewById(R.id.productName);
             tvPrice = itemView.findViewById(R.id.productUnitPrice);
+            ivThumbnail = itemView.findViewById(R.id.productThumbnail);
             view = itemView;
         }
+        public void bind(Product product) throws ExecutionException, InterruptedException {
+            tvPrice.setText(String.valueOf(product.getUnitPrice()));
+            tvName.setText(product.getName());
 
-        public void bind(JSONObject product) throws JSONException {
-            tvDescription.setText(product.getString("name"));
-//            tvPrice.setText(product.getInt("unitPrice"));
+            ImageDownload task = new ImageDownload();
+            Bitmap bitmap = task.execute(product.getThumbnail()).get();
+
+            ivThumbnail.setImageBitmap(bitmap);
+        }
+    }
+
+    private class ImageDownload extends AsyncTask<String, Void, Bitmap> {
+
+        @Override
+        protected Bitmap doInBackground(String... strings) {
+            try {
+                URL url = new URL(strings[0]);
+                HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+                connection.connect();
+
+                Bitmap bitmap = BitmapFactory.decodeStream(connection.getInputStream());
+                return bitmap;
+            }  catch (IOException e) {
+                e.printStackTrace();
+            }
+            return null;
+        }
+
+        @Override
+        protected void onPostExecute(Bitmap bitmap) {
+            super.onPostExecute(bitmap);
         }
     }
 }

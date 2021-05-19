@@ -30,6 +30,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
 import java.lang.reflect.Type;
+import java.util.concurrent.ExecutionException;
 
 public class MainActivity extends AppCompatActivity {
     RecyclerView productList;
@@ -42,7 +43,34 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         DownloadTask task = new DownloadTask();
-        task.execute("https://mpr-cart-api.herokuapp.com/products");
+
+        try {
+            String result = task.execute("https://mpr-cart-api.herokuapp.com/products").get();
+            JSONArray productArray = new JSONArray(result);
+            List<Product> products = new ArrayList<>();
+
+            for(int i = 0; i<productArray.length(); i++){
+                JSONObject productJSON = productArray.getJSONObject(i);
+                int id = productJSON.getInt("id");
+                String thumbnail = productJSON.getString("thumbnail");
+                String name = productJSON.getString("name");
+                int unitPrice = productJSON.getInt("unitPrice");
+                Product product = new Product(id, thumbnail,name,unitPrice);
+                products.add(product);
+
+                productList = findViewById(R.id.productList);
+                productList.setLayoutManager(new StaggeredGridLayoutManager(2, StaggeredGridLayoutManager.VERTICAL));
+                ProductListAdapter productListAdapter = new ProductListAdapter(products);
+                productList.setAdapter(productListAdapter);
+            }
+        } catch (ExecutionException e) {
+            e.printStackTrace();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+
     }
 
     @Override
@@ -92,26 +120,6 @@ public class MainActivity extends AppCompatActivity {
             if (result == null) {
                 Toast.makeText(MainActivity.this, "ERROR", Toast.LENGTH_LONG).show();
                 return;
-            }
-            try {
-                List<Product> demoList = new ArrayList<>();
-                demoList.add(new Product(1, null, "product1", 15000));
-                demoList.add(new Product(2, null, "product1", 15000));
-                demoList.add(new Product(3, null, "product1", 15000));
-
-                TextView tvApi = findViewById(R.id.testApi);
-                tvApi.setText(result);
-
-                JSONArray productArray = new JSONArray(result);
-                productArray.getJSONObject(0);
-
-                productList = findViewById(R.id.productList);
-                productList.setLayoutManager(new StaggeredGridLayoutManager(2, StaggeredGridLayoutManager.VERTICAL));
-                ProductListAdapter productListAdapter = new ProductListAdapter(productArray);
-                productList.setAdapter(productListAdapter);
-
-            } catch (Exception e){
-                throw new IllegalStateException("error");
             }
         }
     }

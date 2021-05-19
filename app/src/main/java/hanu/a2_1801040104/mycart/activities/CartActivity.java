@@ -30,6 +30,5 @@ public class CartActivity extends AppCompatActivity {
         cartView.setLayoutManager(new LinearLayoutManager(this));
         CartListAdapter cartListAdapter = new CartListAdapter(demoCart);
         cartView.setAdapter(cartListAdapter);
-
     }
 }
