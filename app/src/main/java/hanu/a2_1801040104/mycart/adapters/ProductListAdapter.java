@@ -9,6 +9,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageButton;
 import android.widget.ImageView;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -23,10 +24,13 @@ import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 
 import hanu.a2_1801040104.mycart.R;
+import hanu.a2_1801040104.mycart.database.Database;
+import hanu.a2_1801040104.mycart.models.CartItem;
 import hanu.a2_1801040104.mycart.models.Product;
 
 public class ProductListAdapter extends RecyclerView.Adapter<ProductListAdapter.ProductListHolder> {
@@ -53,7 +57,7 @@ public class ProductListAdapter extends RecyclerView.Adapter<ProductListAdapter.
     @Override
     public void onBindViewHolder(@NonNull ProductListHolder holder, int position) {
         Product product = null;
-            product = this.products.get(position);
+        product = this.products.get(position);
         try {
             holder.bind(product);
         } catch (ExecutionException e) {
@@ -64,12 +68,37 @@ public class ProductListAdapter extends RecyclerView.Adapter<ProductListAdapter.
 
 
         ImageButton btnAddToCard = holder.view.findViewById(R.id.btnAddToCart);
+        Product finalProduct = product;
         btnAddToCard.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Toast.makeText(v.getContext(), "Added to cart", Toast.LENGTH_SHORT).show();
+                Database database = new Database(v.getContext(), null, null, 3);
+                if(database.exists(finalProduct.getId())){
+                    try {
+                        database.inscreaseQtyBy1(finalProduct.getId());
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        Toast.makeText(v.getContext(), "Not Added to cart", Toast.LENGTH_SHORT).show();
+                    }
+                } else {
+                    CartItem cartItem = new CartItem();
+                    cartItem.setId(finalProduct.getId());
+                    cartItem.setThumbnail(finalProduct.getThumbnail());
+                    cartItem.setName(finalProduct.getName());
+                    cartItem.setQuantity(1);
+                    cartItem.setUnitPrice(finalProduct.getUnitPrice());
+
+                    database.addProductToCart(cartItem);
+                    Toast.makeText(v.getContext(), "Added to cart", Toast.LENGTH_SHORT).show();
+                }
+
             }
         });
+    }
+
+    public void filterList(ArrayList<Product> filteredProducts) {
+        products = filteredProducts;
+        notifyDataSetChanged();
     }
 
     public class ProductListHolder extends RecyclerView.ViewHolder{

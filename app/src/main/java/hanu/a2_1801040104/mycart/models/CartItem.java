@@ -5,13 +5,16 @@ public class CartItem {
     private String thumbnail;
     private String name;
     private int quantity;
-    private int price;
+    private int unitPrice;
 
-    public CartItem(int id,String thumbnail, String name, int quantity, int price) {
+    public CartItem() {
+    }
+
+    public CartItem(int id, String thumbnail, String name, int quantity, int unitPrice) {
         this.id = id;
         this.name = name;
         this.quantity = quantity;
-        this.price = price;
+        this.unitPrice = unitPrice;
         this.thumbnail = thumbnail;
     }
 
@@ -47,11 +50,11 @@ public class CartItem {
         this.quantity = quantity;
     }
 
-    public int getPrice() {
-        return price;
+    public int getUnitPrice() {
+        return unitPrice;
     }
 
-    public void setPrice(int price) {
-        this.price = price;
+    public void setUnitPrice(int price) {
+        this.unitPrice = price;
     }
 }

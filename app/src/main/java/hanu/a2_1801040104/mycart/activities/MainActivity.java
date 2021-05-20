@@ -12,9 +12,15 @@ import hanu.a2_1801040104.mycart.models.Product;
 import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
+import android.view.View;
+import android.widget.EditText;
+import android.widget.Filter;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -34,44 +40,55 @@ import java.util.concurrent.ExecutionException;
 
 public class MainActivity extends AppCompatActivity {
     RecyclerView productList;
-
-//    ProductListAdapter productListAdapter;
+    List<Product> products = new ArrayList<>();
+    ProductListAdapter productListAdapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        DownloadTask task = new DownloadTask();
 
         try {
-            String result = task.execute("https://mpr-cart-api.herokuapp.com/products").get();
-            JSONArray productArray = new JSONArray(result);
-            List<Product> products = new ArrayList<>();
-
-            for(int i = 0; i<productArray.length(); i++){
-                JSONObject productJSON = productArray.getJSONObject(i);
-                int id = productJSON.getInt("id");
-                String thumbnail = productJSON.getString("thumbnail");
-                String name = productJSON.getString("name");
-                int unitPrice = productJSON.getInt("unitPrice");
-                Product product = new Product(id, thumbnail,name,unitPrice);
-                products.add(product);
-
-                productList = findViewById(R.id.productList);
-                productList.setLayoutManager(new StaggeredGridLayoutManager(2, StaggeredGridLayoutManager.VERTICAL));
-                ProductListAdapter productListAdapter = new ProductListAdapter(products);
-                productList.setAdapter(productListAdapter);
-            }
-        } catch (ExecutionException e) {
+            buildRecyclerView();
+        } catch (JSONException e) {
             e.printStackTrace();
         } catch (InterruptedException e) {
             e.printStackTrace();
-        } catch (JSONException e) {
+        } catch (ExecutionException e) {
             e.printStackTrace();
         }
 
+        EditText searchBox = findViewById(R.id.seacrhTxt);
+        searchBox.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                filter(s.toString());
+            }
+        });
     }
+
+    private void filter(String text){
+        ArrayList<Product> filteredProducts = new ArrayList<>();
+        for(Product product: products){
+            if(product.getName().toLowerCase().contains(text.toLowerCase())){
+                filteredProducts.add(product);
+            }
+        }
+        productListAdapter.filterList(filteredProducts);
+    }
+
+
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -90,6 +107,7 @@ public class MainActivity extends AppCompatActivity {
 
 
     public class DownloadTask extends AsyncTask<String, Void, String> {
+
         @Override
         protected String doInBackground(String... strings) {
             URL url;
@@ -106,6 +124,7 @@ public class MainActivity extends AppCompatActivity {
                     line = sc.nextLine();
                     result.append(line);
                 }
+
                 return result.toString();
             } catch (IOException e) {
                 e.printStackTrace();
@@ -116,11 +135,33 @@ public class MainActivity extends AppCompatActivity {
         @Override
         protected void onPostExecute(String result) {
             super.onPostExecute(result);
-
             if (result == null) {
                 Toast.makeText(MainActivity.this, "ERROR", Toast.LENGTH_LONG).show();
                 return;
             }
+        }
+    }
+
+    public void buildRecyclerView() throws JSONException, ExecutionException, InterruptedException {
+        DownloadTask task = new DownloadTask();
+
+        String result = task.execute("https://mpr-cart-api.herokuapp.com/products").get();
+        JSONArray productArray = new JSONArray(result);
+        products = new ArrayList<>();
+
+        for(int i = 0; i<productArray.length(); i++){
+            JSONObject productJSON = productArray.getJSONObject(i);
+            int id = productJSON.getInt("id");
+            String thumbnail = productJSON.getString("thumbnail");
+            String name = productJSON.getString("name");
+            int unitPrice = productJSON.getInt("unitPrice");
+            Product product = new Product(id, thumbnail,name,unitPrice);
+            products.add(product);
+
+            productList = findViewById(R.id.productList);
+            productList.setLayoutManager(new StaggeredGridLayoutManager(2, StaggeredGridLayoutManager.VERTICAL));
+            productListAdapter = new ProductListAdapter(products);
+            productList.setAdapter(productListAdapter);
         }
     }
 }
