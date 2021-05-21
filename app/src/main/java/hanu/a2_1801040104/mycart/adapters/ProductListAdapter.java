@@ -35,6 +35,7 @@ import hanu.a2_1801040104.mycart.models.Product;
 
 public class ProductListAdapter extends RecyclerView.Adapter<ProductListAdapter.ProductListHolder> {
     private List<Product> products;
+    private Bitmap bitmap;
 
     public ProductListAdapter(List<Product> products) {
         this.products = products;
@@ -73,21 +74,18 @@ public class ProductListAdapter extends RecyclerView.Adapter<ProductListAdapter.
             @Override
             public void onClick(View v) {
                 Database database = new Database(v.getContext(), null, null, 3);
-                if(database.exists(finalProduct.getId())){
-                    try {
-                        database.inscreaseQtyBy1(finalProduct.getId());
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                        Toast.makeText(v.getContext(), "Not Added to cart", Toast.LENGTH_SHORT).show();
-                    }
-                } else {
-                    CartItem cartItem = new CartItem();
-                    cartItem.setId(finalProduct.getId());
-                    cartItem.setThumbnail(finalProduct.getThumbnail());
-                    cartItem.setName(finalProduct.getName());
-                    cartItem.setQuantity(1);
-                    cartItem.setUnitPrice(finalProduct.getUnitPrice());
+                CartItem  cartItem =new CartItem();
+                cartItem.setId(finalProduct.getId());
+                cartItem.setThumbnail(finalProduct.getThumbnail());
+                cartItem.setName(finalProduct.getName());
+                cartItem.setQuantity(1);
+                cartItem.setUnitPrice(finalProduct.getUnitPrice());
+                cartItem.setTotal(cartItem.getUnitPrice()*cartItem.getQuantity());
 
+                if(database.exists(finalProduct.getId())){
+                    database.inscreaseQtyBy1(cartItem.getId());
+                    Toast.makeText(v.getContext(), "Added to cart", Toast.LENGTH_SHORT).show();
+                } else {
                     database.addProductToCart(cartItem);
                     Toast.makeText(v.getContext(), "Added to cart", Toast.LENGTH_SHORT).show();
                 }
@@ -117,7 +115,7 @@ public class ProductListAdapter extends RecyclerView.Adapter<ProductListAdapter.
             tvName.setText(product.getName());
 
             ImageDownload task = new ImageDownload();
-            Bitmap bitmap = task.execute(product.getThumbnail()).get();
+            bitmap = task.execute(product.getThumbnail()).get();
 
             ivThumbnail.setImageBitmap(bitmap);
         }

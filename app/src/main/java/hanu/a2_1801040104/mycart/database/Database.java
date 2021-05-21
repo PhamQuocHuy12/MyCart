@@ -23,6 +23,7 @@ public class Database extends SQLiteOpenHelper {
     private static final String COLUMN_NAME= "name";
     private static final String COLUMN_QUANTITY = "quantity";
     private static final String COLUMN_UNITPRICE = "unitPrice";
+    private static final String COLUMN_TOTAL = "total";
 
     public Database(@Nullable Context context, @Nullable String name, @Nullable SQLiteDatabase.CursorFactory factory, int version) {
         super(context, DATABASE_NAME, factory, DATABASE_VERSION);
@@ -31,7 +32,7 @@ public class Database extends SQLiteOpenHelper {
 
     @Override
     public void onCreate(SQLiteDatabase db) {
-        String query = "CREATE TABLE " + TABLE_NAME + " ( " + COLUMN_ID + " INTEGER PRIMARY KEY ," + COLUMN_THUMBNAIL + " TEXT ," + COLUMN_NAME + " TEXT ," + COLUMN_QUANTITY + " TEXT ," + COLUMN_UNITPRICE + " TEXT" + " ) ";
+        String query = "CREATE TABLE " + TABLE_NAME + " ( " + COLUMN_ID + " INTEGER PRIMARY KEY ," + COLUMN_THUMBNAIL + " TEXT ," + COLUMN_NAME + " TEXT ," + COLUMN_QUANTITY + " TEXT ," + COLUMN_UNITPRICE + " TEXT," + COLUMN_TOTAL + " TEXT" + " ) ";
         db.execSQL(query);
     }
 
@@ -55,6 +56,7 @@ public class Database extends SQLiteOpenHelper {
                 cartItem.setName((cursor.getString(2)));
                 cartItem.setQuantity(Integer.parseInt(cursor.getString(3)));
                 cartItem.setUnitPrice(Integer.parseInt(cursor.getString(4)));
+                cartItem.setTotal(Integer.parseInt(cursor.getString(5)));
 
                 cartItems.add(cartItem);
             } while(cursor.moveToNext());
@@ -64,21 +66,24 @@ public class Database extends SQLiteOpenHelper {
 
     public void addProductToCart(CartItem cartItem){
         ContentValues values = new ContentValues();
+        int total = cartItem.getUnitPrice()*(cartItem.getQuantity());
 
         values.put(COLUMN_ID, cartItem.getId());
         values.put(COLUMN_NAME, cartItem.getName());
         values.put(COLUMN_THUMBNAIL, cartItem.getThumbnail());
         values.put(COLUMN_QUANTITY, 1);
         values.put(COLUMN_UNITPRICE, cartItem.getUnitPrice());
+        values.put(COLUMN_TOTAL, total);
 
         SQLiteDatabase db = getWritableDatabase();
         db.insert(TABLE_NAME, null, values);
         db.close();
     }
 
-    public int inscreaseQtyBy1(int id) throws Exception {
+    public int inscreaseQtyBy1(int id ) {
         SQLiteDatabase db = getWritableDatabase();
         CartItem cartItem = getCartItem(id);
+        int total = cartItem.getUnitPrice()*(cartItem.getQuantity()+1);
 
         ContentValues values = new ContentValues();
         values.put(COLUMN_ID, cartItem.getId());
@@ -86,13 +91,19 @@ public class Database extends SQLiteOpenHelper {
         values.put(COLUMN_THUMBNAIL, cartItem.getThumbnail());
         values.put(COLUMN_QUANTITY, cartItem.getQuantity()+1);
         values.put(COLUMN_UNITPRICE, cartItem.getUnitPrice());
+        values.put(COLUMN_TOTAL, total);
 
         return db.update(TABLE_NAME, values, COLUMN_ID + "=?", new String[]{String.valueOf(cartItem.getId())});
     }
 
-    public int decreaseQtyBy1(int id) throws Exception {
+    public int decreaseQtyBy1(int id)  {
         SQLiteDatabase db = getWritableDatabase();
         CartItem cartItem = getCartItem(id);
+        int total = cartItem.getUnitPrice()*(cartItem.getQuantity()-1);
+        if (cartItem.getQuantity()==1){
+            deleteCartItem(id);
+            return 0;
+        }
 
         ContentValues values = new ContentValues();
         values.put(COLUMN_ID, cartItem.getId());
@@ -100,33 +111,19 @@ public class Database extends SQLiteOpenHelper {
         values.put(COLUMN_THUMBNAIL, cartItem.getThumbnail());
         values.put(COLUMN_QUANTITY, cartItem.getQuantity()-1);
         values.put(COLUMN_UNITPRICE, cartItem.getUnitPrice());
+        values.put(COLUMN_TOTAL, total);
+
 
         return db.update(TABLE_NAME, values, COLUMN_ID + "=?", new String[]{String.valueOf(cartItem.getId())});
     }
 
-    public CartItem getCartItem(int id) throws Exception {
-        SQLiteDatabase db = getReadableDatabase();
-        Cursor cursor = db.query(TABLE_NAME,
-                                new String[]{COLUMN_ID,COLUMN_THUMBNAIL, COLUMN_NAME, COLUMN_QUANTITY, COLUMN_UNITPRICE},
-                                COLUMN_ID + "=?", new String[]{String.valueOf(id)}, null, null, null,null);
-        if (cursor != null){
+    public CartItem getCartItem(int id)  {
+        SQLiteDatabase db = this.getReadableDatabase();
+        Cursor cursor = db.query(TABLE_NAME, new String[]{COLUMN_ID, COLUMN_THUMBNAIL, COLUMN_NAME, COLUMN_QUANTITY, COLUMN_UNITPRICE, COLUMN_TOTAL}, COLUMN_ID + "=?", new String[]{String.valueOf(id)},null, null, null, null);
+        if(cursor != null)
             cursor.moveToFirst();
-            CartItem cartItem = new CartItem();
-
-            cartItem.setId(Integer.parseInt(cursor.getString(0)));
-            cartItem.setThumbnail(cursor.getString(1));
-            cartItem.setName((cursor.getString(2)));
-            cartItem.setQuantity(Integer.parseInt(cursor.getString(3)));
-            cartItem.setUnitPrice(Integer.parseInt(cursor.getString(4)));
-
-            cursor.close();
-            db.close();
-            return cartItem;
-        } else {
-            cursor.close();
-            db.close();
-            throw new Exception("Not found");
-        }
+            CartItem cartItem = new CartItem(Integer.parseInt(cursor.getString(0)),cursor.getString(1),(cursor.getString(2)),Integer.parseInt(cursor.getString(3)), Integer.parseInt(cursor.getString(4)), Integer.parseInt(cursor.getString(5)));
+           return cartItem;
     }
 
     public void deleteCartItem(int id){
@@ -146,5 +143,14 @@ public class Database extends SQLiteOpenHelper {
         cursor.close();
         db.close();
         return exists;
+    }
+
+    public int sumPrice(){
+        SQLiteDatabase db = this.getReadableDatabase();
+        Cursor c = db.rawQuery("SELECT SUM( " + COLUMN_TOTAL+ ") FROM " + TABLE_NAME, null);
+        c.moveToFirst();
+        int i = c.getInt(0);
+        c.close();
+        return i;
     }
 }

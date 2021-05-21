@@ -6,16 +6,18 @@ public class CartItem {
     private String name;
     private int quantity;
     private int unitPrice;
+    private int total;
 
     public CartItem() {
     }
 
-    public CartItem(int id, String thumbnail, String name, int quantity, int unitPrice) {
+    public CartItem(int id, String thumbnail, String name, int quantity, int unitPrice, int total) {
         this.id = id;
         this.name = name;
         this.quantity = quantity;
         this.unitPrice = unitPrice;
         this.thumbnail = thumbnail;
+        this.total =total;
     }
 
     public String getThumbnail() {
@@ -56,5 +58,13 @@ public class CartItem {
 
     public void setUnitPrice(int price) {
         this.unitPrice = price;
+    }
+
+    public int getTotal() {
+        return total;
+    }
+
+    public void setTotal(int total) {
+        this.total = total;
     }
 }
