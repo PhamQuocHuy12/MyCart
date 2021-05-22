@@ -53,7 +53,7 @@
                 android:ellipsize="end">
             </TextView>
             <TextView
-                android:id="@+id/cartItemPrice"
+                android:id="@+id/cartItemTotal"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:textSize="15dp"
@@ -85,20 +85,6 @@
                 android:src="@drawable/ic_baseline_expand_more_24">
             </ImageButton>
         </LinearLayout>
-
-        <TextView
-
-            android:id="@+id/cartItemTotal"
-            android:layout_width="40dp"
-            android:layout_height="25dp"
-            android:layout_weight="1"
-            android:autoSizeMaxTextSize="15sp"
-            android:autoSizeMinTextSize="10sp"
-            android:autoSizeStepGranularity="2sp"
-            android:autoSizeTextType="uniform"
-            android:gravity="center"
-            android:layout_gravity="center"
-            android:text="45000"></TextView>
     </LinearLayout>
     </androidx.cardview.widget.CardView>
 </androidx.constraintlayout.widget.ConstraintLayout>

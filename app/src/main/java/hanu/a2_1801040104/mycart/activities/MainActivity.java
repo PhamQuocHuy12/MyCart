@@ -2,6 +2,7 @@ package hanu.a2_1801040104.mycart.activities;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.recyclerview.widget.StaggeredGridLayoutManager;
 
@@ -9,11 +10,13 @@ import hanu.a2_1801040104.mycart.R;
 import hanu.a2_1801040104.mycart.adapters.ProductListAdapter;
 import hanu.a2_1801040104.mycart.models.Product;
 
+import android.app.ProgressDialog;
 import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -48,16 +51,9 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        DownloadTask task = new DownloadTask();
 
-        try {
-            buildRecyclerView();
-        } catch (JSONException e) {
-            e.printStackTrace();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        } catch (ExecutionException e) {
-            e.printStackTrace();
-        }
+        task.execute("https://mpr-cart-api.herokuapp.com/products");
 
         EditText searchBox = findViewById(R.id.seacrhTxt);
         searchBox.addTextChangedListener(new TextWatcher() {
@@ -107,6 +103,12 @@ public class MainActivity extends AppCompatActivity {
 
 
     public class DownloadTask extends AsyncTask<String, Void, String> {
+        ProgressDialog progressDialogListView= ProgressDialog.show(MainActivity.this, "", "Loading products");
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+            Log.e("onPreExecutive","called"+progressDialogListView);
+        }
 
         @Override
         protected String doInBackground(String... strings) {
@@ -136,32 +138,36 @@ public class MainActivity extends AppCompatActivity {
         protected void onPostExecute(String result) {
             super.onPostExecute(result);
             if (result == null) {
-                Toast.makeText(MainActivity.this, "ERROR", Toast.LENGTH_LONG).show();
+                Toast.makeText(MainActivity.this, "Cant not load products", Toast.LENGTH_LONG).show();
                 return;
             }
-        }
-    }
 
-    public void buildRecyclerView() throws JSONException, ExecutionException, InterruptedException {
-        DownloadTask task = new DownloadTask();
+            JSONArray productArray = null;
+            try {
+                productArray = new JSONArray(result);
+                products = new ArrayList<>();
 
-        String result = task.execute("https://mpr-cart-api.herokuapp.com/products").get();
-        JSONArray productArray = new JSONArray(result);
-        products = new ArrayList<>();
+                for(int i = 0; i<productArray.length(); i++){
+                    JSONObject productJSON = productArray.getJSONObject(i);
+                    int id = productJSON.getInt("id");
+                    String thumbnail = productJSON.getString("thumbnail");
+                    String name = productJSON.getString("name");
+                    int unitPrice = productJSON.getInt("unitPrice");
+                    Product product = new Product(id, thumbnail,name,unitPrice);
+                    products.add(product);
 
-        for(int i = 0; i<productArray.length(); i++){
-            JSONObject productJSON = productArray.getJSONObject(i);
-            int id = productJSON.getInt("id");
-            String thumbnail = productJSON.getString("thumbnail");
-            String name = productJSON.getString("name");
-            int unitPrice = productJSON.getInt("unitPrice");
-            Product product = new Product(id, thumbnail,name,unitPrice);
-            products.add(product);
+                    productList = findViewById(R.id.productList);
+                    productList.setLayoutManager(new StaggeredGridLayoutManager(2, StaggeredGridLayoutManager.VERTICAL));
+                    productListAdapter = new ProductListAdapter(products);
+                    productList.setAdapter(productListAdapter);
 
-            productList = findViewById(R.id.productList);
-            productList.setLayoutManager(new StaggeredGridLayoutManager(2, StaggeredGridLayoutManager.VERTICAL));
-            productListAdapter = new ProductListAdapter(products);
-            productList.setAdapter(productListAdapter);
+                    if(progressDialogListView.isShowing()){
+                        progressDialogListView.dismiss();
+                    }
+            }
+        } catch (JSONException e) {
+                e.printStackTrace();
+            }
         }
     }
 }

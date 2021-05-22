@@ -17,6 +17,8 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 
+import com.squareup.picasso.Picasso;
+
 import org.json.JSONException;
 
 
@@ -57,16 +59,8 @@ public class ProductListAdapter extends RecyclerView.Adapter<ProductListAdapter.
 
     @Override
     public void onBindViewHolder(@NonNull ProductListHolder holder, int position) {
-        Product product = null;
-        product = this.products.get(position);
-        try {
-            holder.bind(product);
-        } catch (ExecutionException e) {
-            e.printStackTrace();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-
+        Product product = this.products.get(position);
+        holder.bind(product);
 
         ImageButton btnAddToCard = holder.view.findViewById(R.id.btnAddToCart);
         Product finalProduct = product;
@@ -110,37 +104,36 @@ public class ProductListAdapter extends RecyclerView.Adapter<ProductListAdapter.
             ivThumbnail = itemView.findViewById(R.id.productThumbnail);
             view = itemView;
         }
-        public void bind(Product product) throws ExecutionException, InterruptedException {
+        public void bind(Product product) {
             tvPrice.setText(String.valueOf(product.getUnitPrice()));
             tvName.setText(product.getName());
 
-            ImageDownload task = new ImageDownload();
-            bitmap = task.execute(product.getThumbnail()).get();
-
-            ivThumbnail.setImageBitmap(bitmap);
+            ImageDownload task = new ImageDownload(ivThumbnail);
+            task.execute(product.getThumbnail());
         }
     }
 
-    private class ImageDownload extends AsyncTask<String, Void, Bitmap> {
+    private class ImageDownload extends AsyncTask<String, Void, String> {
+        ImageView ivThumbnail;
+
+        public ImageDownload(ImageView ivThumbnail) {
+            this.ivThumbnail = ivThumbnail;
+        }
 
         @Override
-        protected Bitmap doInBackground(String... strings) {
+        protected String doInBackground(String... strings) {
             try {
                 URL url = new URL(strings[0]);
-                HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-                connection.connect();
-
-                Bitmap bitmap = BitmapFactory.decodeStream(connection.getInputStream());
-                return bitmap;
+                return String.valueOf(url);
             }  catch (IOException e) {
                 e.printStackTrace();
             }
             return null;
         }
-
         @Override
-        protected void onPostExecute(Bitmap bitmap) {
-            super.onPostExecute(bitmap);
+        protected void onPostExecute(String string) {
+            super.onPostExecute(string);
+            Picasso.get().load(String.valueOf(string)).into(ivThumbnail);
         }
     }
 }

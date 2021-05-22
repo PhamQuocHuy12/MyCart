@@ -2,7 +2,6 @@ package hanu.a2_1801040104.mycart.adapters;
 
 import android.content.Context;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.os.AsyncTask;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -10,17 +9,21 @@ import android.view.ViewGroup;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.squareup.picasso.Picasso;
+
 import java.io.IOException;
-import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
 
 import hanu.a2_1801040104.mycart.R;
+import hanu.a2_1801040104.mycart.activities.CartActivity;
+import hanu.a2_1801040104.mycart.activities.MainActivity;
 import hanu.a2_1801040104.mycart.activities.TotalCash;
 import hanu.a2_1801040104.mycart.database.Database;
 import hanu.a2_1801040104.mycart.models.CartItem;
@@ -29,7 +32,6 @@ import hanu.a2_1801040104.mycart.models.CartItem;
 public class CartListAdapter extends RecyclerView.Adapter<CartListAdapter.CartListHolder> {
     private List<CartItem> items;
     private Context context;
-    private Bitmap bitmap;
     private Database database;
     private TotalCash listener;
 
@@ -56,18 +58,19 @@ public class CartListAdapter extends RecyclerView.Adapter<CartListAdapter.CartLi
     @Override
     public void onBindViewHolder(@NonNull CartListHolder holder, int position) {
         CartItem cartItem = this.items.get(position);
-        try {
-            holder.bind(cartItem);
-        } catch (ExecutionException e) {
-            e.printStackTrace();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
+        holder.bind(cartItem);
 
         ImageButton increase = holder.itemView.findViewById(R.id.cartItemIncrease);
         ImageButton decrease = holder.itemView.findViewById(R.id.cartItemDecrease);
         database = new Database(context, null, null, 3);
         CartItem item = items.get(position);
+
+        holder.itemView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Toast.makeText(v.getContext(), "Swipe to reomve this product", Toast.LENGTH_LONG).show();
+            }
+        });
 
         increase.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -99,42 +102,43 @@ public class CartListAdapter extends RecyclerView.Adapter<CartListAdapter.CartLi
     }
 
     public class CartListHolder extends RecyclerView.ViewHolder{
-        private TextView tvName, tvPrice, tvQuantity, tvTotalPrice;
+        private TextView tvName, tvQuantity, tvTotalPrice;
         private ImageView ivThumbnail;
+        private View view;
         public CartListHolder(@NonNull View itemView) {
             super(itemView);
             tvName = itemView.findViewById(R.id.cartItemDescription);
-            tvPrice = itemView.findViewById(R.id.cartItemPrice);
             tvQuantity = itemView.findViewById(R.id.cartItemQuantity);
             ivThumbnail = itemView.findViewById(R.id.cartItemImage);
             tvTotalPrice = itemView.findViewById(R.id.cartItemTotal);
+            view =  itemView;
         }
 
-        public void bind(CartItem cartItem) throws ExecutionException, InterruptedException {
+        public void bind(CartItem cartItem)  {
             tvName.setText(cartItem.getName());
-            tvPrice.setText(String.valueOf(cartItem.getUnitPrice()));
             tvQuantity.setText(String.valueOf(cartItem.getQuantity()));
-            tvTotalPrice.setText(String.valueOf(cartItem.getTotal()));
+            tvTotalPrice.setText("Total: "+ cartItem.getTotal() +  " VND");
 
-            if(cartItem.getThumbnail() != null){
-            CartListAdapter.ImageDownload task = new CartListAdapter.ImageDownload();
-            bitmap = task.execute(cartItem.getThumbnail()).get();
-            ivThumbnail.setImageBitmap(bitmap);
-            }
+            ImageDownload task = new ImageDownload(ivThumbnail);
+            task.execute(cartItem.getThumbnail());
         }
     }
 
-    private class ImageDownload extends AsyncTask<String, Void, Bitmap> {
+
+
+
+    private class ImageDownload extends AsyncTask<String, Void, String> {
+        ImageView ivThumbnail;
+
+        public ImageDownload(ImageView ivThumbnail) {
+            this.ivThumbnail = ivThumbnail;
+        }
 
         @Override
-        protected Bitmap doInBackground(String... strings) {
+        protected String doInBackground(String... strings) {
             try {
                 URL url = new URL(strings[0]);
-                HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-                connection.connect();
-
-                Bitmap bitmap = BitmapFactory.decodeStream(connection.getInputStream());
-                return bitmap;
+                return String.valueOf(url);
             }  catch (IOException e) {
                 e.printStackTrace();
             }
@@ -142,8 +146,9 @@ public class CartListAdapter extends RecyclerView.Adapter<CartListAdapter.CartLi
         }
 
         @Override
-        protected void onPostExecute(Bitmap bitmap) {
-            super.onPostExecute(bitmap);
+        protected void onPostExecute(String string) {
+            super.onPostExecute(string);
+            Picasso.get().load(String.valueOf(string)).into(ivThumbnail);
         }
     }
 }
